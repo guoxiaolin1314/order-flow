@@ -6022,7 +6022,7 @@ function confirmDelete(message, onConfirm) {
   // 默认供方联系人
   if (DB.get('suppliers').length === 0) {
     DB.set('suppliers', [
-      { id: 's1', companyName: '广东厚海锐膜新材料科技有限公司', contact: '林国晓', phone: '13828681703', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: true },
+      { id: 's1', companyName: '广东厚海锐膜新材料科技有限公司', name: '林国晓', contact: '林国晓', phone: '13828681703', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: true },
       { id: 's2', companyName: '广东厚海锐膜新材料科技有限公司', contact: '吴敏琼', phone: '13902888888', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: false }
     ]);
   }
@@ -6096,9 +6096,9 @@ function confirmDelete(message, onConfirm) {
 /* customer.js */
 /* ===== 客户档案模块 ===== */
 
-/** DeepSeek API 相关（现由后端代理处理，前端不再需要 Key） */
-const DEEPSEEK_API_KEY = '';
-const DEEPSEEK_API_URL = '';
+/** DeepSeek API Key（用户自己的Key） */
+const DEEPSEEK_API_KEY = 'sk-58f2a9ec1885481ab0c36f300fcace08';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 /** 中文→拼音首字母映射（常用字，不全的后续可补充） */
 const PINYIN_MAP = (function(){
@@ -6281,10 +6281,15 @@ const CustomerModule = {
     const prompt = '你是一个客户信息提取助手。从以下文本中提取客户信息，返回严格的JSON格式（不要markdown代码块），字段：shortName（客户简称，2-4字）、companyName（单位名称）、contact（联系人）、phone（电话）、fax（传真）、address（地址）。如果某个字段找不到则返回空字符串。文本：\n\n' + text;
 
     try {
-      const resp = await fetch('/api/ai-parse', {
+      const resp = await fetch(DEEPSEEK_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DEEPSEEK_API_KEY },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          max_tokens: 500
+        })
       });
 
       if (!resp.ok) {
@@ -6565,16 +6570,7 @@ const SupplierModule = {
         <label>地址</label>
         <input class="form-control" id="sf_address" value="${d.address || '广东省江门鹤山市古劳镇万洋众创城A2栋'}" placeholder="公司地址">
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>开户银行</label>
-          <input class="form-control" id="sf_bankName" value="${d.bankName || '广东鹤山农村商业银行股份有限公司三连支行'}" placeholder="开户行">
-        </div>
-        <div class="form-group">
-          <label>银行账号</label>
-          <input class="form-control" id="sf_bankAccount" value="${d.bankAccount || '80020000020368368'}" placeholder="账号">
-        </div>
-      </div>
+
       <div class="form-group">
         <label>
           <input type="checkbox" id="sf_default" ${d.isDefault ? 'checked' : ''}> 设为默认供方
@@ -6589,8 +6585,8 @@ const SupplierModule = {
       contact: document.getElementById('sf_contact').value.trim(),
       phone: document.getElementById('sf_phone').value.trim(),
       address: document.getElementById('sf_address').value.trim(),
-      bankName: document.getElementById('sf_bankName').value.trim(),
-      bankAccount: document.getElementById('sf_bankAccount').value.trim(),
+      
+      
       isDefault: document.getElementById('sf_default').checked
     };
     if (!data.companyName) { showToast('请输入公司名称', 'warning'); return; }
@@ -6623,7 +6619,7 @@ const SupplierModule = {
   /** 获取供方下拉选项 */
   getSelectOptions(selectedId) {
     const list = DB.get('suppliers');
-    return list.map(s => `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.contact || s.companyName || s.name || '未知'} - ${s.phone || ''}</option>`).join('');
+    return list.map(s => `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.companyName || s.name} - ${s.phone || ''}</option>`).join('');
   }
 };
 
@@ -8200,7 +8196,7 @@ const QuoteDocModule = {
             <div class="form-group">
               <label>供方联系人</label>
               <select class="form-control" id="qdSupplier">
-                ${DB.get('suppliers').map(s => `<option value="${s.id}" ${s.isDefault ? 'selected' : ''}>${s.contact || s.name || '未知'} - ${s.phone}</option>`).join('')}
+                ${DB.get('suppliers').map(s => `<option value="${s.id}" ${s.isDefault ? 'selected' : ''}>${s.name} - ${s.phone}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -8977,7 +8973,7 @@ const ContractModule = {
             <div class="form-group">
               <label>供方联系人</label>
               <select class="form-control" id="ctSupplier">
-                ${DB.get('suppliers').map(s => `<option value="${s.id}" ${s.isDefault ? 'selected' : ''}>${s.contact || s.name || '未知'} - ${s.phone}</option>`).join('')}
+                ${DB.get('suppliers').map(s => `<option value="${s.id}" ${s.isDefault ? 'selected' : ''}>${s.name} - ${s.phone}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -9657,7 +9653,7 @@ const ScheduleModule = {
           <div class="form-row">
             <div class="form-group" style="flex:1;">
               <label>${this.calcMode === 'forward' ? '开工日期' : '交货日期'}</label>
-              <input class="form-control" id="scDate" type="date" value="${this.getDefaultDeadline()}">
+              <input class="form-control" id="scDate" type="date" value="${this.getToday()}" onchange="ScheduleModule.onDateChange()">
             </div>
             <div class="form-group" style="flex:1;">
               <label>计划交货日</label>
@@ -9856,17 +9852,24 @@ const ScheduleModule = {
   // ========== 核心计算 ==========
 
   /** 步骤1：计算需生产面积/米数/卷数 */
-  calcProductionNeed(orderQty, cutShape) {
+  calcProductionNeed(orderQty, cutShape, unit) {
     if (!orderQty) return null;
+    // 套→片换算：如果单位是"套"，查形状的每套片数
+    let actualQty = orderQty;
+    if (unit === '套') {
+      const shape = DB.get('shapes').find(s => s.name === cutShape);
+      const piecesPerSet = shape?.piecesPerSet || 2;
+      actualQty = orderQty * piecesPerSet;
+    }
     const perSqm = this.CONFIG.cuttingPerSqm[cutShape] || 16;
-    const theoryArea = orderQty / perSqm;
+    const theoryArea = actualQty / perSqm;
     const yieldRate = parseFloat(document.getElementById('scYieldRate')?.value) / 100 || 0.8;
     const actualArea = theoryArea / yieldRate;
     const width = this.CONFIG.spinning.width;
     const meters = actualArea / width;
     const rollLength = this.CONFIG.spinning.rollLength;
     const rolls = Math.ceil(meters / rollLength);
-    return { perSqm, theoryArea, actualArea, meters, rolls };
+    return { perSqm, theoryArea, actualArea, meters, rolls, actualQty };
   },
 
 
@@ -10014,11 +10017,13 @@ const ScheduleModule = {
     const orderQty = firstItem.quantity;
     if (!orderQty || orderQty <= 0) { showToast('请填写产品数量', 'warning'); return; }
 
-    // 计算需生产面积
-    const need = this.calcProductionNeed(orderQty, firstItem.cutShape);
+    // 计算需生产面积（传单位，内部做套→片换算）
+    const need = this.calcProductionNeed(orderQty, firstItem.cutShape, firstItem.unit);
     if (!need) { showToast('计算失败', 'error'); return; }
-    need.orderQty = orderQty;
-    need.unit = firstItem.unit;
+    // need.orderQty 用于全检等后续工序，用换算后的实际片数
+    need.orderQty = need.actualQty;
+    // 套换算为片后，时间线统一用"片"展示（生产端只认片数）
+    need.unit = firstItem.unit === '套' ? '片' : firstItem.unit;
 
     // 计算工序天数
     const processDays = this.calcProcessDays(need);
@@ -10186,9 +10191,83 @@ const ScheduleModule = {
   },
 
   // ========== 保存 ==========
+  historyClick(btn) {
+    var id = btn.getAttribute('data-id');
+    var action = btn.getAttribute('data-action');
+    if (action === 'view') this.viewHistory(id);
+    else if (action === 'export') this.exportHistory(id);
+    else if (action === 'delete') this.deleteHistory(id);
+  },
+
+  viewHistory(id) {
+    var rec = DB.getById('schedules', id);
+    if (!rec) { showToast('数据不存在', 'error'); return; }
+    document.getElementById('scContractNo').value = rec.contractNo || '';
+    if (rec.customerId) {
+      var sel = document.getElementById('scCustomer');
+      if (sel) sel.value = rec.customerId;
+    }
+    if (rec.deadline) document.getElementById('scDeadline').value = rec.deadline;
+    if (rec.items) {
+      var itemArr = Array.isArray(rec.items) ? rec.items : [rec.items];
+      this.items = itemArr.map(function(item, i){
+        return { id: 'sc_hv_' + i, name: item.name || '', spec: item.spec || '', quantity: item.qty || item.quantity || '', unit: item.unit || '片', cutShape: item.cutShape || '上下脸' };
+      });
+    }
+    navigate('schedule');
+    showToast('已加载排产记录：' + (rec.contractNo || ''), 'success');
+  },
+
+  exportHistory(id) {
+    var rec = DB.getById('schedules', id);
+    if (!rec) { showToast('数据不存在', 'error'); return; }
+    var cname = rec.customerName || '客户';
+    var cno = rec.contractNo || '';
+    var dline = rec.deadline || '';
+    var rows = rec.timeline || [];
+    if (rows.length === 0) {
+      // 没有时间线，用基础信息生成简单报表
+      rows = [{ seq: '1', process: '（无时间线数据）', date: '', content: '请重新计算排产后保存', planned: '' }];
+    }
+    var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    var xml = '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>' +
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' +
+      '<Styles><Style ss:ID="Default" ss:Name="Normal"><Font ss:FontName="微软雅黑" ss:Size="10"/></Style>' +
+      '<Style ss:ID="title"><Font ss:FontName="微软雅黑" ss:Size="16" ss:Bold="1"/><Alignment ss:Horizontal="Center"/></Style>' +
+      '<Style ss:ID="header"><Font ss:FontName="微软雅黑" ss:Size="11" ss:Bold="1"/><Interior ss:Color="#D9D9D9" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>' +
+      '<Style ss:ID="normal"><Alignment ss:Horizontal="Center"/></Style></Styles>' +
+      '<Worksheet ss:Name="排产进度表"><Table>' +
+      '<Column ss:Width="40"/><Column ss:Width="80"/><Column ss:Width="100"/><Column ss:Width="200"/><Column ss:Width="80"/>' +
+      '<Row><Cell ss:MergeAcross="4" ss:StyleID="title"><Data ss:Type="String">' + esc(cname + '排产进度表 ' + cno) + '</Data></Cell></Row>' +
+      '<Row><Cell ss:MergeAcross="4" ss:StyleID="normal"><Data ss:Type="String">客户：' + esc(cname) + '  计划交货日：' + dline + '</Data></Cell></Row><Row/>' +
+      '<Row>' + ['序号','工序','计划日期','工作内容','计划产出'].map(function(h){ return '<Cell ss:StyleID="header"><Data ss:Type="String">' + h + '</Data></Cell>'; }).join('') + '</Row>';
+    rows.forEach(function(r){
+      xml += '<Row>' + ['seq','process','date','content','planned'].map(function(k){
+        return '<Cell ss:StyleID="normal"><Data ss:Type="String">' + esc(r[k] || '') + '</Data></Cell>';
+      }).join('') + '</Row>';
+    });
+    xml += '</Table></Worksheet></Workbook>';
+    var blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (cname || '排产') + '_排产进度表.xls';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('导出成功', 'success');
+  },
+
   save() {
     const data = this._collectData();
     if (!data) return;
+    var tlRows = [];
+    document.querySelectorAll('#scResultBody table tbody tr').forEach(function(tr){
+      var tds = tr.querySelectorAll('td');
+      if (tds.length >= 7) {
+        tlRows.push({ seq: tds[0].textContent.trim(), process: tds[1].textContent.trim(), date: tds[2].textContent.trim(), content: tds[3].textContent.trim(), planned: tds[4].textContent.trim() });
+      }
+    });
+    data.timeline = tlRows;
     DB.add('schedules', {
       ...data,
       id: 'sc_' + Date.now(),
@@ -10361,9 +10440,18 @@ const ScheduleModule = {
       }
     }
     
-    // 导入交货日期
+    // 导入交货日期（从合同第8条款提取天数）
     if (d.signDate) {
-      document.getElementById('scDeadline').value = d.signDate;
+      document.getElementById('scDate').value = d.signDate;
+      // 从 shipTime 提取天数，如30个工作日内→30
+      var shipDays = 30;
+      if (d.shipTime) {
+        var match = d.shipTime.match(/\d+/);
+        if (match) shipDays = parseInt(match[0]);
+      }
+      var dl = new Date(d.signDate);
+      dl.setDate(dl.getDate() + shipDays);
+      document.getElementById('scDeadline').value = dl.toISOString().slice(0, 10);
     }
     
     // 导入产品明细
@@ -10425,6 +10513,14 @@ const ScheduleModule = {
     return sorted[0].contractNo || generateContractNo();
   },
 
+  onDateChange() {
+    var startDate = document.getElementById('scDate')?.value;
+    if (!startDate) return;
+    var d = new Date(startDate);
+    d.setDate(d.getDate() + 30);
+    document.getElementById('scDeadline').value = d.toISOString().slice(0, 10);
+  },
+
   onPageLoad() {
     this.applyScopeHide();
     const raw = sessionStorage.getItem('ctImportData');
@@ -10483,9 +10579,14 @@ const ScheduleModule = {
         '<div style="flex:1;">' +
           '<strong>' + (d.contractNo || d.projectNo || '未知') + '</strong> - 需求量：' + (d.items?.quantity || d.items?.qty || 0).toLocaleString() +
         '</div>' +
-        '<button class="btn btn-sm btn-danger" onclick="ScheduleModule.deleteHistory(\'' + d.id + '\')">🗑</button>' +
+        '<button class="btn btn-sm btn-outline" onclick="ScheduleModule.viewHistory(\' + d.id + \')" style="margin-right:4px;">👁</button>' +
+        '<button class="btn btn-sm btn-outline" onclick="ScheduleModule.exportHistory(\' + d.id + \')" style="margin-right:4px;">📥</button><button class="btn btn-sm btn-danger" onclick="ScheduleModule.deleteHistory(\'' + d.id + '\')">🗑</button>' +
       '</div>';
     }).join('') + '</div>';
+  },
+
+  getToday() {
+    return new Date().toISOString().slice(0, 10);
   },
 
   getDefaultDeadline() {
