@@ -12,6 +12,16 @@ const PORT = process.env.PORT || 3000;
 // 解析 JSON body
 app.use(express.json());
 
+// 强制禁止缓存 HTML 文件（解决浏览器缓存导致更新不生效的问题）
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // 托管静态文件（前端页面 + templates）
 app.use(express.static(__dirname));
 
