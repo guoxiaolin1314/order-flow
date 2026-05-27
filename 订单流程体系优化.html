@@ -6022,7 +6022,7 @@ function confirmDelete(message, onConfirm) {
   // 默认供方联系人
   if (DB.get('suppliers').length === 0) {
     DB.set('suppliers', [
-      { id: 's1', companyName: '广东厚海锐膜新材料科技有限公司', contact: '林国晓', phone: '13828681703', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: true },
+      { id: 's1', companyName: '广东厚海锐膜新材料科技有限公司', name: '林国晓', contact: '林国晓', phone: '13828681703', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: true },
       { id: 's2', companyName: '广东厚海锐膜新材料科技有限公司', contact: '吴敏琼', phone: '13902888888', address: '广东省江门鹤山市古劳镇万洋众创城A2栋', bankName: '广东鹤山农村商业银行股份有限公司三连支行', bankAccount: '80020000020368368', isDefault: false }
     ]);
   }
@@ -6096,9 +6096,9 @@ function confirmDelete(message, onConfirm) {
 /* customer.js */
 /* ===== 客户档案模块 ===== */
 
-/** DeepSeek API 相关（现由后端代理处理，前端不再需要 Key） */
-const DEEPSEEK_API_KEY = '';
-const DEEPSEEK_API_URL = '';
+/** DeepSeek API Key（用户自己的Key） */
+const DEEPSEEK_API_KEY = 'sk-58f2a9ec1885481ab0c36f300fcace08';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 /** 中文→拼音首字母映射（常用字，不全的后续可补充） */
 const PINYIN_MAP = (function(){
@@ -6281,10 +6281,15 @@ const CustomerModule = {
     const prompt = '你是一个客户信息提取助手。从以下文本中提取客户信息，返回严格的JSON格式（不要markdown代码块），字段：shortName（客户简称，2-4字）、companyName（单位名称）、contact（联系人）、phone（电话）、fax（传真）、address（地址）。如果某个字段找不到则返回空字符串。文本：\n\n' + text;
 
     try {
-      const resp = await fetch('/api/ai-parse', {
+      const resp = await fetch(DEEPSEEK_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DEEPSEEK_API_KEY },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          max_tokens: 500
+        })
       });
 
       if (!resp.ok) {
