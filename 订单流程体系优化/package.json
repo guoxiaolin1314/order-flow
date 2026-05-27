@@ -1,0 +1,12 @@
+{
+  "name": "order-flow",
+  "version": "1.0.0",
+  "description": "厚海锐膜 · 订单流程体系优化（含 AI 后端代理）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
